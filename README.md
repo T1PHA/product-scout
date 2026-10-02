@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Product Scout
 
-## Getting Started
+Outil local d'analyse de viabilité produit, pour deux modèles :
 
-First, run the development server:
+- **E-commerce produit neuf** (méthode « produit gagnant » : panier ≥ 40 €, marge nette ≥ 25 € après pub, demande prouvée, pubs qui tournent depuis plus de 30 jours, démontrable en vidéo, logistique simple, potentiel de gamme, produits à bannir, angle libre).
+- **Achat-revente d'occasion** (grille Tests Produits : approvisionnement, demande, marge, panier, liquidité, travail, logistique, expertise, scalabilité, sortie B2B).
+
+Tu tapes un produit, l'outil collecte les données réelles, calcule la marge, note chaque critère, puis Gemini rédige l'analyse (leviers émotionnels, effet miroir, angles, accroches, gamme, risques, plan de test).
+
+## Lancer
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run build
+npm run start      # http://localhost:3077
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ou double-clic sur `Lancer Product Scout.bat`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+En développement : `npm run dev` (port 3077).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Première configuration
 
-## Learn More
+1. **Clé Gemini gratuite** : Réglages, puis colle une clé créée sur https://aistudio.google.com/apikey (sans carte bancaire). Sans clé, l'outil marche mais sans les critères qualitatifs ni l'analyse rédigée.
+2. **Ventes conclues eBay** (facultatif) : Réglages, « Ouvrir la fenêtre de connexion », connecte-toi à eBay, puis « J'ai terminé ». La session est gardée dans `~/.product-scout/browser-profile`.
 
-To learn more about Next.js, take a look at the following resources:
+## Sources (toutes gratuites)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Source | Ce qu'on en tire | Méthode |
+|---|---|---|
+| Google Trends FR | Courbe 5 ans, variation 12 mois, saisonnalité | Page Explorer dans le navigateur |
+| Meta Ad Library FR | Nombre de pubs actives, ancienneté, annonceurs, domaines | Page publique |
+| Boutiques concurrentes | Prix réels des boutiques qui font de la pub | `/products.json` des boutiques Shopify |
+| AliExpress | Prix unitaire fournisseur, ventes affichées | Page de recherche |
+| Alibaba | Prix de gros, MOQ | Page de recherche |
+| Amazon.fr | Prix, avis, badges « achetés le mois dernier » | Page de recherche |
+| eBay.fr | Annonces, ventes conclues si connecté | Page de recherche |
+| Vinted | Prix demandés, états, marques | Page catalogue |
+| YouTube | Vidéos de démonstration et vues | HTML public |
+| DuckDuckGo / Bing | Avis, douleurs, concurrents | Navigateur |
+| Wikipedia | Intérêt pour la catégorie | API publique |
+| Frankfurter | Taux de change (USD, CNY) | API publique (public-apis) |
+| SellersCalc | Barèmes de frais de référence | API publique (public-apis) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Les pages sont lues par un vrai navigateur Edge placé hors écran (profil persistant), ce qui évite la plupart des blocages. Leboncoin, Reddit, Etsy et TikTok bloquent les robots et ne sont pas utilisés.
 
-## Deploy on Vercel
+## Export
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Markdown et PDF depuis le rapport.
+- « Envoyer vers Tests Produits » ajoute une colonne dans la feuille Google, en réutilisant le client OAuth de `~/Documents/Scraper prospection/app/sheets_client.py` (variable `PS_SHEETS_APP` pour changer ce chemin).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Structure
+
+- `src/lib/sources/` : un module par source (`run()` renvoie données + liens).
+- `src/lib/scoring/` : calcul de marge, critères, score pondéré, confiance, verdict.
+- `src/lib/ai.ts` : mots-clés et rapport Gemini (JSON).
+- `src/lib/runner.ts` : orchestration (phase 1 en parallèle, phase 2 pour les sources dépendantes).
+- `data/product-scout.db` : base SQLite locale (analyses, réglages).
+
+## Tests
+
+```bash
+npm test
+```
